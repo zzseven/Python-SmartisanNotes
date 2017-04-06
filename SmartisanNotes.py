@@ -2,6 +2,8 @@
 # -*- coding:utf-8 -*
 import sys
 import requests
+import requests
+from bs4 import BeautifulSoup
 import simplejson as json
 from uuid import uuid4
 from base64 import b64encode
@@ -14,6 +16,39 @@ from requests_toolbelt import MultipartEncoder
 
 ERROR_MAP = {'0': 'OK', '1': 'SYSTEM_MAINTENANCE', '2': 'LOGIC_ERROR', '3': 'FS_READ_ERROR', '4': 'FS_WRITE_ERROR', '5': 'DB_CONNECT_ERROR', '6': 'DB_QUERY_ERROR', '7': 'CACHE_CONNECT_ERROR', '8': 'CACHE_QUERY_ERROR', '1002': 'PARAMETER_ERROR', '1601': 'ILLEGAL_TICKET', '1602': 'INVALID_TICKET', '1101': 'ILLEGAL_UID', '1102': 'ILLEGAL_PASSWORD', '1103': 'ILLEGAL_AVATAR', '1104': 'ILLEGAL_SECQUES', '1105': 'ILLEGAL_SECANS', '1106': 'INVALID_UID', '1107': 'INVALID_PASSWORD', '1108': 'INVALID_SECANS', '1109': 'ALIAS_REQUIRED', '1110': 'PASSWORD_REQUIRED', '1201': 'ILLEGAL_ALIAS',
              '1202': 'INVALID_ALIAS', '1203': 'REGISTERED_ALIAS', '1204': 'ILLEGAL_CELLPHONE', '1205': 'INVALID_CELLPHONE', '1206': 'REGISTERED_CELLPHONE', '1207': 'ILLEGAL_EMAIL', '1208': 'INVALID_EMAIL', '1209': 'REGISTERED_EMAIL', '1210': 'INVALID_NICKNAME', '1211': 'UNREGISTERED_NICKNAME', '1212': 'REGISTERED_NICKNAME', '1213': 'ILLEGAL_NICKNAME', '1301': 'ILLEGAL_VCODE', '1302': 'INVALID_VCODE', '1304': 'VCODE_TOO_OFTEN', '1502': 'CAPTCHA_REQUIRED', '1401': 'ILLEGAL_TOKEN', '1402': 'INVALID_TOKEN', '1701': 'UNAUTHORIZED', '1303': 'REFRECH_VCODE', '1501': 'FAILED_LOGIN_LIMIT'}
+
+
+#获取每日读报时间的每日一报，返回该网页上的文字
+def get_mryb_text():
+    #获取每日一报的最新文章链接
+    newAticle = requests.get("http://weixin.sogou.com/weixin?query=每日读报时间")
+    newAticle_aflag = BeautifulSoup(newAticle.text, "html.parser").find(uigs="account_article_0")
+    mryb_link = newAticle_aflag.get('href')
+
+    #获取每日一报最新文章的网页代码
+    mryb = requests.get(mryb_link)
+
+    aticle_soup = BeautifulSoup(mryb.text,"html.parser")
+    #网页抓取每日一报的标题
+    aticle_title = aticle_soup.find(id="activity-name")
+    #网页抓取每日一报的内容
+    aticle_content = aticle_soup.find("div", id="js_content")
+    
+    #可以使用lstrip(), strip(), rstrip()来去除某个字符，默认空格
+    
+    text = ''
+    #网页标题
+    for string in aticle_title.stripped_strings:
+        text += string
+        text += '\n'
+    #网页内容
+    for string in aticle_content.stripped_strings:
+        text += string
+        text += '\n'
+
+    return  text
+
+
 
 
 class SmartisanNotes(object):
@@ -308,4 +343,10 @@ class SmartisanNotes(object):
         return self.noteGetList()
 
 if __name__ == '__main__':
-    pass
+    username = ''
+    password = ''
+    # 创建新实例，同时完成登录
+    s = SmartisanNotes(username, password)
+    text = get_mryb_text()
+    note, image = s.noteCreate(detail=text, note2Img='1')
+    exit()
